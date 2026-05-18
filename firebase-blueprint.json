@@ -1,0 +1,80 @@
+{
+  "entities": {
+    "Dossier": {
+      "title": "Dossier Juridique",
+      "description": "Représente une affaire ou un contrat suivi par l'utilisateur",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "Titre du dossier" },
+        "userId": { "type": "string", "description": "UID de l'utilisateur propriétaire" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "type": { "type": "string", "description": "Type de dossier (contrat, analyse, conseil)" },
+        "contractDraft": { "type": "string", "description": "Version actuelle du contrat" },
+        "securityStatus": { 
+          "type": "string", 
+          "enum": ["standard", "confidential", "restricted"],
+          "description": "Niveau de confidentialité du dossier"
+        }
+      },
+      "required": ["title", "userId", "createdAt", "updatedAt"]
+    },
+    "AuditLog": {
+      "title": "Journal d'Audit",
+      "description": "Trace des actions critiques pour la sécurité et la conformité",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "dossierId": { "type": "string" },
+        "action": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "ipHash": { "type": "string", "description": "Hachage de l'IP pour l'audit anonyme" },
+        "details": { "type": "string" }
+      },
+      "required": ["userId", "action", "timestamp"]
+    },
+    "Connector": {
+      "title": "Connecteur",
+      "description": "Configuration d'un plugin ou service tiers",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "type": { "type": "string", "enum": ["whatsapp", "zapier", "email", "calendar"] },
+        "name": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "inactive"] },
+        "config": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "type", "name", "status"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "Un message individuel dans une conversation de dossier",
+      "type": "object",
+      "properties": {
+        "role": { "type": "string", "enum": ["user", "model"] },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["role", "content", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/dossiers/{dossierId}": {
+      "schema": "Dossier",
+      "description": "Collection racine des dossiers"
+    },
+    "/dossiers/{dossierId}/messages/{messageId}": {
+      "schema": "Message",
+      "description": "Sous-collection des messages pour chaque dossier"
+    },
+    "/auditLogs/{logId}": {
+      "schema": "AuditLog",
+      "description": "Journal global des accès et actions de sécurité"
+    },
+    "/connectors/{connectorId}": {
+      "schema": "Connector",
+      "description": "Configurations des intégrations externes (WhatsApp, Zapier, etc)"
+    }
+  }
+}

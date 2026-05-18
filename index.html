@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Google AI Studio App</title>
+  </head>
+  <body>
+    <script>
+      (function() {
+        const shadow = {};
+        const globalProxy = new Proxy(window, {
+          get(target, prop) {
+            if (prop === 'global' || prop === 'self' || prop === 'window') return globalProxy;
+            if (prop in shadow) return shadow[prop];
+            const value = target[prop];
+            if (typeof value === 'function') {
+              // Methods that definitely need window context
+              const needsBinding = [
+                'fetch', 'setTimeout', 'setInterval', 'clearTimeout', 'clearInterval',
+                'requestAnimationFrame', 'cancelAnimationFrame', 'alert', 'confirm', 'prompt'
+              ];
+              if (needsBinding.includes(prop)) {
+                return value.bind(target);
+              }
+              // If it's a native function but not a constructor, it's safer to bind
+              if (value.toString().includes('[native code]') && !/^[A-Z]/.test(prop)) {
+                try {
+                  return value.bind(target);
+                } catch (e) {
+                  return value;
+                }
+              }
+            }
+            return value;
+          },
+          set(target, prop, value) {
+            // Don't even try to set known read-only native properties on window
+            const readOnlyNatives = ['fetch', 'navigator', 'location', 'history', 'document', 'performance', 'console'];
+            
+            if (readOnlyNatives.includes(prop)) {
+              shadow[prop] = value;
+              return true;
+            }
+
+            try {
+              // Check descriptor if possible to avoid throwing in strict mode or specific environments
+              const descriptor = Object.getOwnPropertyDescriptor(target, prop);
+              if (descriptor && descriptor.writable === false) {
+                shadow[prop] = value;
+                return true;
+              }
+              
+              target[prop] = value;
+            } catch (e) {
+              // Fallback to shadow if assignment fails
+              shadow[prop] = value;
+            }
+            return true;
+          },
+          has(target, prop) {
+            return prop in shadow || prop in target;
+          }
+        });
+        
+        // Define 'global' safely
+        try {
+          Object.defineProperty(window, 'global', {
+            value: globalProxy,
+            configurable: true,
+            enumerable: false,
+            writable: true
+          });
+        } catch (e) {
+          window.global = globalProxy;
+        }
+      })();
+    </script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

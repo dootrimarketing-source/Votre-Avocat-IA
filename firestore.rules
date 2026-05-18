@@ -1,0 +1,89 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Dossier Validation
+    function isValidDossier(data) {
+      return data.keys().hasAll(['title', 'userId', 'createdAt', 'updatedAt', 'type']) 
+        && data.title is string && data.title.size() <= 200
+        && data.userId == request.auth.uid
+        && data.type is string && data.type.size() <= 50
+        && (data.get('contractDraft', '') is string)
+        && (data.get('securityStatus', 'standard') in ['standard', 'confidential', 'restricted'])
+        && data.createdAt == request.time
+        && data.updatedAt == request.time;
+    }
+
+    function isValidDossierUpdate(data) {
+      return data.userId == existing().userId
+        && data.createdAt == existing().createdAt
+        && data.updatedAt == request.time
+        && data.title is string && data.title.size() <= 200
+        && data.type is string && data.type.size() <= 50
+        && (data.get('contractDraft', '') is string)
+        && (data.get('securityStatus', 'standard') in ['standard', 'confidential', 'restricted']);
+    }
+
+    // Message Validation
+    function isValidMessage(data, dossierId) {
+      return data.keys().hasAll(['role', 'content', 'createdAt'])
+        && data.role in ['user', 'model']
+        && data.content is string && data.content.size() <= 50000
+        && data.createdAt == request.time
+        && get(/databases/$(database)/documents/dossiers/$(dossierId)).data.userId == request.auth.uid;
+    }
+
+    // AuditLog Validation
+    function isValidAuditLog(data) {
+      return data.keys().hasAll(['userId', 'action', 'timestamp'])
+        && data.userId == request.auth.uid
+        && data.timestamp == request.time;
+    }
+
+    match /dossiers/{dossierId} {
+      allow get, delete: if isOwner(existing().userId);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidDossier(incoming());
+      allow update: if isOwner(existing().userId) 
+        && isValidDossierUpdate(incoming())
+        && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['title', 'updatedAt', 'contractDraft', 'type', 'securityStatus'])
+        );
+
+      match /messages/{messageId} {
+        allow read: if isOwner(get(/databases/$(database)/documents/dossiers/$(dossierId)).data.userId);
+        allow create: if isSignedIn() && isValidMessage(incoming(), dossierId);
+      }
+    }
+
+    match /auditLogs/{logId} {
+      allow create: if isSignedIn() && isValidAuditLog(incoming());
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+  }
+}
