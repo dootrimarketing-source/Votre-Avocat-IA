@@ -1,5 +1,5 @@
 {
-  "name": "Votre Avocat IA",
+  "name": "LexIIA",
   "description": "Assistant juridique expert pour conseils, rédaction de contrats et analyse de documents.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

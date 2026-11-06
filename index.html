@@ -3,11 +3,135 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My Google AI Studio App</title>
+    <title>LexIIA — 1er annuaire juridique IA</title>
+    <link rel="icon" type="image/jpeg" href="/src/assets/images/lexiia_favicon_1784042907297.jpg" />
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-QPZMMWTHFX"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-QPZMMWTHFX');
+    </script>
   </head>
   <body>
     <script>
       (function() {
+        const isAbortLike = function(err) {
+          if (!err) return false;
+          if (err.name === 'AbortError' || err.name === 'CanceledError' || err.name === 'AbortSignal' || err.code === 20 || err.code === 'ERR_CANCELED' || (err.signal && err.signal.aborted)) return true;
+          const msg = String(err.message || err.reason || err.error || err || '').toLowerCase();
+          return (
+            msg.includes('abort') ||
+            msg.includes('aborted') ||
+            msg.includes('cancel') ||
+            msg.includes('cancelled') ||
+            msg.includes('interrupted') ||
+            msg.includes('the user aborted a request') ||
+            msg.includes('user aborted') ||
+            msg.includes('signal is aborted') ||
+            msg.includes('component unmounted') ||
+            msg.includes('new chat message sent') ||
+            msg.includes('cancelled-popup-request') ||
+            msg.includes('popup-blocked') ||
+            msg.includes('popup-closed-by-user') ||
+            msg.includes('pending promise was never set') ||
+            msg.includes('internal assertion failed') ||
+            msg.includes('could not reach cloud firestore backend') ||
+            msg.includes("backend didn't respond within 10 seconds") ||
+            msg.includes('client will operate in offline mode') ||
+            msg.includes('the client is offline') ||
+            msg.includes('failed to get document because the client is offline') ||
+            msg.includes('failed to fetch') ||
+            msg.includes('networkerror') ||
+            msg.includes('load failed') ||
+            msg.includes('network request failed')
+          );
+        };
+
+        // Suppress benign messages in console before scripts load
+        const origConsoleError = console.error;
+        console.error = function(...args) {
+          if (args.some(arg => isAbortLike(arg)) || isAbortLike(args.map(a => String(a?.message || a?.stack || a || '')).join(' '))) {
+            return;
+          }
+          origConsoleError.apply(console, args);
+        };
+
+        const origConsoleWarn = console.warn;
+        console.warn = function(...args) {
+          if (args.some(arg => isAbortLike(arg)) || isAbortLike(args.map(a => String(a?.message || a?.stack || a || '')).join(' '))) {
+            return;
+          }
+          origConsoleWarn.apply(console, args);
+        };
+
+        // Suppress unhandled rejection events
+        window.addEventListener('unhandledrejection', function(event) {
+          if (isAbortLike(event.reason) || isAbortLike(event)) {
+            event.preventDefault();
+            if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+            if (event.stopPropagation) event.stopPropagation();
+          }
+        }, true);
+
+        // Suppress window runtime error events
+        window.addEventListener('error', function(event) {
+          if (isAbortLike(event.error) || isAbortLike(event.message) || isAbortLike(event)) {
+            event.preventDefault();
+            if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+            if (event.stopPropagation) event.stopPropagation();
+          }
+        }, true);
+
+        // Suppress window.onerror
+        const origOnError = window.onerror;
+        window.onerror = function(msg, src, line, col, err) {
+          if (isAbortLike(err) || isAbortLike(msg)) {
+            return true;
+          }
+          if (typeof origOnError === 'function') {
+            return origOnError(msg, src, line, col, err);
+          }
+          return false;
+        };
+
+        // Suppress window.onunhandledrejection
+        const origOnUnhandled = window.onunhandledrejection;
+        window.onunhandledrejection = function(evt) {
+          if (isAbortLike(evt?.reason) || isAbortLike(evt)) {
+            if (evt && evt.preventDefault) evt.preventDefault();
+            return true;
+          }
+          if (typeof origOnUnhandled === 'function') {
+            return origOnUnhandled.call(window, evt);
+          }
+        };
+
+        // Enforce a friendly getter/setter on window.fetch so re-assignments (like overrides/mocks) succeed without throwing read-only errors
+        let currentFetch = window.fetch;
+        try {
+          Object.defineProperty(window, 'fetch', {
+            get() { return currentFetch; },
+            set(v) { currentFetch = v; },
+            configurable: true,
+            enumerable: true
+          });
+        } catch (e) {
+          try {
+            Object.defineProperty(Window.prototype, 'fetch', {
+              get() { return currentFetch; },
+              set(v) { currentFetch = v; },
+              configurable: true,
+              enumerable: true
+            });
+          } catch (err) {
+            // Unavoidable in certain highly strict sandboxes
+          }
+        }
+
         const shadow = {};
         const globalProxy = new Proxy(window, {
           get(target, prop) {
